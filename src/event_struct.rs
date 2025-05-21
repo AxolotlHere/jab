@@ -1,11 +1,11 @@
-struct cmd_line {
-    _path_to_dir: String,
-    _command: Cmd,
+use whoami;
+
+pub enum Cmd {
+    Whoami,
 }
 
-enum Cmd {
-    cd(String),
-    ls,
-    pwd,
-    echo(String),
+pub fn execute(command: &Cmd) -> String {
+    match command {
+        Cmd::Whoami => String::from(whoami::username()),
+    }
 }
