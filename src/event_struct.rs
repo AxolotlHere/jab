@@ -1,16 +1,30 @@
-use std::process::Command;
+use std::env;
+use std::{path::Path, process::Command};
 
 use whoami;
 
-pub enum Cmd {
+pub enum Cmd<'a> {
     Whoami,
+    Cd(&'a str),
     Other(String, Vec<String>),
 }
 
 pub fn execute(command: &Cmd) -> String {
     match command {
         Cmd::Whoami => whoami::username(),
+        Cmd::Cd(_path) => {
+            let status = env::set_current_dir(Path::new(_path));
+            let ret: String = match status {
+                Ok(cmd) => env::current_dir()
+                    .unwrap()
+                    .into_os_string()
+                    .into_string()
+                    .unwrap(),
+                Err(e) => format!("throwback").to_string(),
+            };
 
+            ret
+        }
         Cmd::Other(cmd, args) => {
             let a = Command::new(format!("{}", cmd)).args(args).output();
             let res: String = match a {
