@@ -17,19 +17,27 @@ fn main() {
     let cmd = BufReader::new(&std_reader);
     for i in cmd.lines() {
         match i {
-            Ok(inp_str) => match inp_str.as_str().trim() {
-                "cd" => writeln!(std_writer, "Entered command is cd").unwrap(),
-                "ls" => writeln!(std_writer, "WUT").unwrap(),
-                "pwd" => writeln!(std_writer, "{_path}/").unwrap(),
+            Ok(inp_str) => match inp_str.trim().split(" ").next().unwrap_or("").trim() {
+                "cd" => write!(std_writer, "Entered command is cd").unwrap(),
+                "pwd" => write!(std_writer, "{_path}/").unwrap(),
                 "whoami" => {
                     let ret: String = event_struct::execute(&event_struct::Cmd::Whoami);
-                    writeln!(std_writer, "{ret}").unwrap()
+                    write!(std_writer, "{ret}").unwrap()
                 }
                 "exit" => {
                     println!("Gracefully shutting down\n[Exit code : 0]");
                     exit(0);
                 }
-                other => writeln!(std_writer, "Err : Unknown command found").unwrap(),
+                other => {
+                    let mut cmd_space = inp_str.trim().split(" ");
+                    let cmd: String = cmd_space.next().unwrap().to_string();
+                    let mut arg: Vec<String> = Vec::new();
+                    for i in cmd_space {
+                        arg.push(i.to_string());
+                    }
+                    let ret: String = event_struct::execute(&event_struct::Cmd::Other(cmd, arg));
+                    write!(std_writer, "{ret}").unwrap()
+                }
             },
             Err(_) => {
                 panic!("Unexpected Error occured: Exiting the instance");
