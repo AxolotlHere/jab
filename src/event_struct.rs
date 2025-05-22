@@ -6,6 +6,8 @@ use whoami;
 pub enum Cmd<'a> {
     Whoami,
     Cd(&'a str),
+    Export(String, String),
+    Say(String),
     Other(String, Vec<String>),
 }
 
@@ -23,6 +25,18 @@ pub fn execute(command: &Cmd) -> String {
                 Err(e) => format!("throwback").to_string(),
             };
 
+            ret
+        }
+        Cmd::Export(env_var, env_val) => {
+            unsafe { env::set_var(env_var, env_val) };
+            "".to_string()
+        }
+        Cmd::Say(env_var) => {
+            let val = env::var(env_var);
+            let ret: String = match val {
+                Ok(v) => execute(&Cmd::Other(v, Vec::new())),
+                Err(e) => "say: Unexpected environment variable found".to_string(),
+            };
             ret
         }
         Cmd::Other(cmd, args) => {

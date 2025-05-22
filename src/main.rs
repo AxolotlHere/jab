@@ -1,3 +1,4 @@
+use std::collections::binary_heap::Iter;
 use std::fmt::write;
 use std::io::{BufReader, BufWriter, Write, prelude::*};
 use std::process::exit;
@@ -16,7 +17,7 @@ fn main() {
     let std_reader = io::stdin();
     let std_writer = io::stdout();
     let mut std_writer = BufWriter::new(std_writer);
-    write!(std_writer, "{_path} > ").unwrap();
+    write!(std_writer, "\x1b[96m{_path} > \x1b[0m").unwrap();
     std_writer.flush().unwrap();
     let cmd = BufReader::new(&std_reader);
     for i in cmd.lines() {
@@ -37,10 +38,26 @@ fn main() {
                             .unwrap();
                     }
                 }
+                "export" => {
+                    let mut part_ref: _ = inp_str.trim().split(" ");
+                    let cmd = part_ref.next().unwrap();
+                    let mut export_arg = part_ref.next().unwrap().split("=");
+                    let env_var = export_arg.next().unwrap().to_string();
+                    let env_val = export_arg.next().unwrap().to_string();
+                    event_struct::execute(&event_struct::Cmd::Export(env_var, env_val));
+                }
+                "say" => {
+                    let mut part_ref = inp_str.trim().split(" ");
+                    let cmd = part_ref.next().unwrap();
+                    let env_var = part_ref.next().unwrap();
+                    let res: String =
+                        event_struct::execute(&event_struct::Cmd::Say(env_var.to_string()));
+                    write!(std_writer, "{res}").unwrap()
+                }
                 "pwd" => write!(std_writer, "{_path}/").unwrap(),
                 "whoami" => {
                     let ret: String = event_struct::execute(&event_struct::Cmd::Whoami);
-                    write!(std_writer, "{ret}").unwrap()
+                    writeln!(std_writer, "{ret}").unwrap()
                 }
                 "exit" => {
                     println!("Gracefully shutting down\n[Exit code : 0]");
@@ -61,7 +78,7 @@ fn main() {
                 panic!("Unexpected Error occured: Exiting the instance");
             }
         }
-        write!(std_writer, "{_path} > ").unwrap();
+        write!(std_writer, "\x1b[96m{_path} > \x1b[0m").unwrap();
         std_writer.flush().unwrap();
     }
 }
