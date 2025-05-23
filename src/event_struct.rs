@@ -17,8 +17,8 @@ pub enum Cmd<'a> {
 }
 
 #[derive(Debug, serde::Deserialize)]
-struct HistoryWrapper {
-    history: Vec<String>,
+pub struct HistoryWrapper {
+    pub history: Vec<String>,
 }
 pub fn execute(command: &Cmd) -> String {
     match command {
@@ -46,7 +46,6 @@ pub fn execute(command: &Cmd) -> String {
             }
             "".to_string()
         }
-
         Cmd::Var(env_var) => {
             let val = env::var(env_var);
             let ret: String = match val {
@@ -55,7 +54,6 @@ pub fn execute(command: &Cmd) -> String {
             };
             ret
         }
-
         Cmd::Say(env_var) => {
             let val = env::var(env_var);
             let ret: String = match val {
@@ -97,9 +95,7 @@ pub fn execute(command: &Cmd) -> String {
             let reader_ = BufReader::new(f_handler);
             let history_data: HistoryWrapper =
                 serde_json::from_reader(reader_).expect("history: invalid parsing results found");
-
             res = history_data.history.join("\r\n");
-
             res
         }
         Cmd::Other(cmd, args) => {
