@@ -1,6 +1,7 @@
-use std::env;
+use std::fs::File;
+use std::io::{BufReader, Read};
+use std::{env, fs};
 use std::{path::Path, process::Command};
-
 use whoami;
 
 pub enum Cmd<'a> {
@@ -9,10 +10,16 @@ pub enum Cmd<'a> {
     Export(String, String),
     Say(String),
     Exec(String),
+    Var(String),
     Nuke(String),
+    History,
     Other(String, Vec<String>),
 }
 
+#[derive(Debug, serde::Deserialize)]
+struct HistoryWrapper {
+    history: Vec<String>,
+}
 pub fn execute(command: &Cmd) -> String {
     match command {
         Cmd::Whoami => whoami::username(),
@@ -39,6 +46,16 @@ pub fn execute(command: &Cmd) -> String {
             }
             "".to_string()
         }
+
+        Cmd::Var(env_var) => {
+            let val = env::var(env_var);
+            let ret: String = match val {
+                Ok(v) => v,
+                Err(e) => "var: Mismatch in the variable".to_string(),
+            };
+            ret
+        }
+
         Cmd::Say(env_var) => {
             let val = env::var(env_var);
             let ret: String = match val {
@@ -69,7 +86,22 @@ pub fn execute(command: &Cmd) -> String {
             };
             res
         }
+        Cmd::History => {
+            let mut res: String = String::new();
 
+            let user = whoami::username();
+            let path_ = format!("/home/{user}/.config/jab/history.json");
+            let history_record_path = Path::new(&path_);
+            let f_handler = File::open(history_record_path)
+                .expect("history: Unable to find the history for parsing");
+            let reader_ = BufReader::new(f_handler);
+            let history_data: HistoryWrapper =
+                serde_json::from_reader(reader_).expect("history: invalid parsing results found");
+
+            res = history_data.history.join("\r\n");
+
+            res
+        }
         Cmd::Other(cmd, args) => {
             let a = Command::new(format!("{}", cmd)).args(args).output();
             let res: String = match a {

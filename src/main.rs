@@ -77,6 +77,10 @@ fn main() {
                     let ret: String = event_struct::execute(&event_struct::Cmd::Whoami);
                     writeln!(std_writer, "{ret}").unwrap()
                 }
+                "history" => {
+                    let history_val: String = event_struct::execute(&event_struct::Cmd::History);
+                    writeln!(std_writer, "{history_val}").unwrap()
+                }
                 "exit" => {
                     println!("Gracefully shutting down\n[Exit code : 0]");
                     exit(0);
