@@ -1,5 +1,3 @@
-use std::collections::binary_heap::Iter;
-use std::fmt::write;
 use std::io::{BufReader, BufWriter, Write, prelude::*};
 use std::process::exit;
 use std::{env, io};
@@ -38,13 +36,33 @@ fn main() {
                             .unwrap();
                     }
                 }
+                "echo" => {}
+                "exec" => {
+                    let mut cmd = inp_str.trim().split(" ");
+                    cmd.next().unwrap();
+                    let sh_script = cmd.next().unwrap();
+                    let res = event_struct::execute(&Cmd::Exec(sh_script.to_string()));
+                    write!(std_writer, "{res}").unwrap();
+                }
+
                 "export" => {
                     let mut part_ref: _ = inp_str.trim().split(" ");
                     let cmd = part_ref.next().unwrap();
-                    let mut export_arg = part_ref.next().unwrap().split("=");
+                    let mut export_stuff = String::new();
+                    for i in part_ref {
+                        export_stuff += &format!("{} ", i);
+                    }
+                    let mut export_arg = export_stuff.trim().split("=");
+
                     let env_var = export_arg.next().unwrap().to_string();
                     let env_val = export_arg.next().unwrap().to_string();
                     event_struct::execute(&event_struct::Cmd::Export(env_var, env_val));
+                }
+                "nuke" => {
+                    let mut part_ref: _ = inp_str.trim().split(" ");
+                    let cmd = part_ref.next().unwrap();
+                    let env_var = part_ref.next().unwrap().to_string();
+                    event_struct::execute(&event_struct::Cmd::Nuke(env_var));
                 }
                 "say" => {
                     let mut part_ref = inp_str.trim().split(" ");
