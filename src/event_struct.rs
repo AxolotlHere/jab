@@ -1,5 +1,6 @@
 use std::fs::File;
 use std::io::{BufReader, Read};
+use std::process::Stdio;
 use std::{env, fs};
 use std::{path::Path, process::Command};
 use whoami;
@@ -86,7 +87,6 @@ pub fn execute(command: &Cmd) -> String {
         }
         Cmd::History => {
             let mut res: String = String::new();
-
             let user = whoami::username();
             let path_ = format!("/home/{user}/.config/jab/history.json");
             let history_record_path = Path::new(&path_);
@@ -99,17 +99,31 @@ pub fn execute(command: &Cmd) -> String {
             res
         }
         Cmd::Other(cmd, args) => {
-            let a = Command::new(format!("{}", cmd)).args(args).output();
-            let res: String = match a {
-                Ok(msg) => format!(
-                    "{}\n\x1b[34m{}\x1b[0m",
-                    String::from_utf8_lossy(&msg.stdout),
-                    String::from_utf8_lossy(&msg.stderr)
-                )
-                .to_string(),
-                Err(e) => format!("{}\n", e).to_string(),
-            };
-            res
+            if args.get(args.len() - 1).unwrap() != "&" {
+                let a = Command::new(format!("{}", cmd)).args(args).output();
+                let res: String = match a {
+                    Ok(msg) => format!(
+                        "{}\n\x1b[34m{}\x1b[0m",
+                        String::from_utf8_lossy(&msg.stdout),
+                        String::from_utf8_lossy(&msg.stderr)
+                    )
+                    .to_string(),
+                    Err(e) => format!("{}\n", e).to_string(),
+                };
+                res
+            } else {
+                let a = Command::new(format!("{}", cmd))
+                    .args(&args[0..=args.len() - 2])
+                    .stdin(Stdio::null())
+                    .stderr(Stdio::null())
+                    .stdout(Stdio::null())
+                    .spawn();
+                let res: String = match a {
+                    Ok(msg) => "".to_string(),
+                    Err(msg) => "spawn error: Unable to spawn the job".to_string(),
+                };
+                res
+            }
         }
     }
 }

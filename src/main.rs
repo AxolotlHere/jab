@@ -131,7 +131,6 @@ fn main() {
                     }
                     let ret: String = event_struct::execute(&event_struct::Cmd::Other(cmd, arg));
                     if !(inp_str.is_empty()) {
-                        println!("ENters");
                         write_history(inp_str)
                     };
                     write!(std_writer, "{ret}").unwrap()
