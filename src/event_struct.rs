@@ -1,9 +1,18 @@
+use once_cell::sync::Lazy;
+use std::env;
 use std::fs::File;
-use std::io::{BufReader, Read};
+use std::io::BufReader;
 use std::process::Stdio;
-use std::{env, fs};
+use std::sync::Mutex;
+use std::thread;
 use std::{path::Path, process::Command};
 use whoami;
+
+static job_list: Lazy<Mutex<Vec<String>>> = Lazy::new(|| Mutex::new(Vec::new()));
+fn add_job(job_cmd: &String) {
+    let mut job_lock = job_list.lock().unwrap();
+    job_lock.push(job_cmd.clone());
+}
 
 pub enum Cmd<'a> {
     Whoami,
@@ -112,14 +121,35 @@ pub fn execute(command: &Cmd) -> String {
                 };
                 res
             } else {
-                let a = Command::new(format!("{}", cmd))
+                let a = Command::new(format!("{}", &cmd))
                     .args(&args[0..=args.len() - 2])
                     .stdin(Stdio::null())
                     .stderr(Stdio::null())
                     .stdout(Stdio::null())
                     .spawn();
+
                 let res: String = match a {
-                    Ok(msg) => "".to_string(),
+                    Ok(mut msg) => {
+                        let cmd_clone: String = cmd.clone();
+                        thread::spawn(move || {
+                            add_job(&cmd_clone);
+                            let res = msg.wait();
+                            match res {
+                                Ok(msg) => {
+                                    let n = job_list.lock().iter().len();
+                                    for i in 0..n {
+                                        if job_list.lock().unwrap()[i] == cmd_clone {
+                                            job_list.lock().unwrap().remove(i);
+                                        }
+                                    }
+                                }
+                                Err(_) => {
+                                    "Bruh";
+                                }
+                            }
+                        });
+                        "".to_string()
+                    }
                     Err(msg) => "spawn error: Unable to spawn the job".to_string(),
                 };
                 res

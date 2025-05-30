@@ -40,7 +40,7 @@ fn main() {
         .unwrap(); //Default path
     let std_reader = io::stdin();
     let std_writer = io::stdout();
-
+    let mut job_arr: Vec<String> = Vec::new();
     let mut std_writer = BufWriter::new(std_writer);
     write!(std_writer, "\x1b[96m{_path} > \x1b[0m").unwrap();
     std_writer.flush().unwrap();
@@ -129,7 +129,8 @@ fn main() {
                     for i in cmd_space {
                         arg.push(i.to_string());
                     }
-                    let ret: String = event_struct::execute(&event_struct::Cmd::Other(cmd, arg));
+                    let ret: String =
+                        event_struct::execute(&event_struct::Cmd::Other(cmd, arg, &mut job_arr));
                     if !(inp_str.is_empty()) {
                         write_history(inp_str)
                     };
