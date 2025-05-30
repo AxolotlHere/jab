@@ -98,8 +98,10 @@ fn main() {
                     let mut part_ref = inp_str.trim().split(" ");
                     let cmd = part_ref.next().unwrap();
                     let env_var = part_ref.next().unwrap();
-                    let res: String =
-                        event_struct::execute(&event_struct::Cmd::Say(env_var.to_string()));
+                    let res: String = event_struct::execute(&event_struct::Cmd::Say(
+                        env_var.to_string(),
+                        inp_str.clone(),
+                    ));
                     write_history(inp_str);
                     write!(std_writer, "{res}").unwrap()
                 }
@@ -132,7 +134,8 @@ fn main() {
                     for i in cmd_space {
                         arg.push(i.to_string());
                     }
-                    let ret: String = event_struct::execute(&event_struct::Cmd::Other(cmd, arg));
+                    let ret: String =
+                        event_struct::execute(&event_struct::Cmd::Other(cmd, arg, inp_str.clone()));
                     if !(inp_str.is_empty()) {
                         write_history(inp_str)
                     };

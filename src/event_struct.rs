@@ -18,13 +18,13 @@ pub enum Cmd<'a> {
     Whoami,
     Cd(&'a str),
     Export(String, String),
-    Say(String),
+    Say(String, String),
     Exec(String),
     Var(String),
     Nuke(String),
     History,
     Job,
-    Other(String, Vec<String>),
+    Other(String, Vec<String>, String),
 }
 
 #[derive(Debug, serde::Deserialize)]
@@ -65,14 +65,14 @@ pub fn execute(command: &Cmd) -> String {
             };
             ret
         }
-        Cmd::Say(env_var) => {
+        Cmd::Say(env_var, inp_str) => {
             let val = env::var(env_var);
             let ret: String = match val {
                 Ok(v) => {
                     if v.to_string().contains(".sh") {
                         let mut arg_vec: Vec<String> = Vec::new();
                         arg_vec.push(v);
-                        execute(&Cmd::Other("sh".to_string(), arg_vec))
+                        execute(&Cmd::Other("sh".to_string(), arg_vec, inp_str.clone()))
                     } else {
                         let mut split_ref = v.split(" ");
                         let cmd: String = split_ref.next().unwrap().to_string();
@@ -80,7 +80,7 @@ pub fn execute(command: &Cmd) -> String {
                         for i in split_ref {
                             argv.push(i.to_string());
                         }
-                        execute(&Cmd::Other(cmd, argv))
+                        execute(&Cmd::Other(cmd, argv, inp_str.clone()))
                     }
                 }
                 Err(e) => "say: Unexpected environment variable found\n".to_string(),
@@ -121,7 +121,7 @@ pub fn execute(command: &Cmd) -> String {
             }
             str_1
         }
-        Cmd::Other(cmd, args) => {
+        Cmd::Other(cmd, args, inp_str) => {
             if !(args.is_empty()) {
                 if args.get(args.len() - 1).unwrap() != "&" {
                     let a = Command::new(format!("{}", cmd)).args(args).output();
@@ -145,15 +145,15 @@ pub fn execute(command: &Cmd) -> String {
 
                     let res: String = match a {
                         Ok(mut msg) => {
-                            let cmd_clone: String = cmd.clone();
+                            let inp_str_clone: String = inp_str.clone();
                             thread::spawn(move || {
-                                add_job(&cmd_clone);
+                                add_job(&inp_str_clone);
                                 let res = msg.wait();
                                 match res {
                                     Ok(msg) => {
                                         let n = job_list.lock().iter().len();
                                         for i in 0..n {
-                                            if job_list.lock().unwrap()[i] == cmd_clone {
+                                            if job_list.lock().unwrap()[i] == inp_str_clone {
                                                 job_list.lock().unwrap().remove(i);
                                             }
                                         }
