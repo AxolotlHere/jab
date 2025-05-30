@@ -23,6 +23,7 @@ pub enum Cmd<'a> {
     Var(String),
     Nuke(String),
     History,
+    Job,
     Other(String, Vec<String>),
 }
 
@@ -107,8 +108,68 @@ pub fn execute(command: &Cmd) -> String {
             res = history_data.history.join("\r\n");
             res
         }
+        Cmd::Job => {
+            let mut str_1: String = String::from("ID\tProcess\n");
+            let mut counter_: i32 = 1;
+            if job_list.lock().unwrap().is_empty() {
+                str_1 = String::from("No background tasks running yet.")
+            } else {
+                for i in job_list.lock().unwrap().iter() {
+                    str_1 += &format!("{counter_}\t{i}\n");
+                    counter_ += 1;
+                }
+            }
+            str_1
+        }
         Cmd::Other(cmd, args) => {
-            if args.get(args.len() - 1).unwrap() != "&" {
+            if !(args.is_empty()) {
+                if args.get(args.len() - 1).unwrap() != "&" {
+                    let a = Command::new(format!("{}", cmd)).args(args).output();
+                    let res: String = match a {
+                        Ok(msg) => format!(
+                            "{}\n\x1b[34m{}\x1b[0m",
+                            String::from_utf8_lossy(&msg.stdout),
+                            String::from_utf8_lossy(&msg.stderr)
+                        )
+                        .to_string(),
+                        Err(e) => format!("{}\n", e).to_string(),
+                    };
+                    res
+                } else {
+                    let a = Command::new(format!("{}", &cmd))
+                        .args(&args[0..=args.len() - 2])
+                        .stdin(Stdio::null())
+                        .stderr(Stdio::null())
+                        .stdout(Stdio::null())
+                        .spawn();
+
+                    let res: String = match a {
+                        Ok(mut msg) => {
+                            let cmd_clone: String = cmd.clone();
+                            thread::spawn(move || {
+                                add_job(&cmd_clone);
+                                let res = msg.wait();
+                                match res {
+                                    Ok(msg) => {
+                                        let n = job_list.lock().iter().len();
+                                        for i in 0..n {
+                                            if job_list.lock().unwrap()[i] == cmd_clone {
+                                                job_list.lock().unwrap().remove(i);
+                                            }
+                                        }
+                                    }
+                                    Err(woah) => {
+                                        "Bruh";
+                                    }
+                                }
+                            });
+                            "".to_string()
+                        }
+                        Err(msg) => "spawn error: Unable to spawn the job".to_string(),
+                    };
+                    res
+                }
+            } else {
                 let a = Command::new(format!("{}", cmd)).args(args).output();
                 let res: String = match a {
                     Ok(msg) => format!(
@@ -118,39 +179,6 @@ pub fn execute(command: &Cmd) -> String {
                     )
                     .to_string(),
                     Err(e) => format!("{}\n", e).to_string(),
-                };
-                res
-            } else {
-                let a = Command::new(format!("{}", &cmd))
-                    .args(&args[0..=args.len() - 2])
-                    .stdin(Stdio::null())
-                    .stderr(Stdio::null())
-                    .stdout(Stdio::null())
-                    .spawn();
-
-                let res: String = match a {
-                    Ok(mut msg) => {
-                        let cmd_clone: String = cmd.clone();
-                        thread::spawn(move || {
-                            add_job(&cmd_clone);
-                            let res = msg.wait();
-                            match res {
-                                Ok(msg) => {
-                                    let n = job_list.lock().iter().len();
-                                    for i in 0..n {
-                                        if job_list.lock().unwrap()[i] == cmd_clone {
-                                            job_list.lock().unwrap().remove(i);
-                                        }
-                                    }
-                                }
-                                Err(_) => {
-                                    "Bruh";
-                                }
-                            }
-                        });
-                        "".to_string()
-                    }
-                    Err(msg) => "spawn error: Unable to spawn the job".to_string(),
                 };
                 res
             }

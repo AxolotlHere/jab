@@ -40,7 +40,6 @@ fn main() {
         .unwrap(); //Default path
     let std_reader = io::stdin();
     let std_writer = io::stdout();
-    let mut job_arr: Vec<String> = Vec::new();
     let mut std_writer = BufWriter::new(std_writer);
     write!(std_writer, "\x1b[96m{_path} > \x1b[0m").unwrap();
     std_writer.flush().unwrap();
@@ -122,6 +121,10 @@ fn main() {
                     println!("Gracefully shutting down\n[Exit code : 0]");
                     exit(0);
                 }
+                "jobs" => {
+                    let job_val: String = event_struct::execute(&event_struct::Cmd::Job);
+                    writeln!(std_writer, "{job_val}").unwrap()
+                }
                 other => {
                     let mut cmd_space = inp_str.trim().split(" ");
                     let cmd: String = cmd_space.next().unwrap().to_string();
@@ -129,8 +132,7 @@ fn main() {
                     for i in cmd_space {
                         arg.push(i.to_string());
                     }
-                    let ret: String =
-                        event_struct::execute(&event_struct::Cmd::Other(cmd, arg, &mut job_arr));
+                    let ret: String = event_struct::execute(&event_struct::Cmd::Other(cmd, arg));
                     if !(inp_str.is_empty()) {
                         write_history(inp_str)
                     };
