@@ -9,6 +9,14 @@ use std::{path::Path, process::Command};
 use whoami;
 
 static job_list: Lazy<Mutex<Vec<String>>> = Lazy::new(|| Mutex::new(Vec::new()));
+static TUI_EDITOR: Lazy<Mutex<Vec<String>>> = Lazy::new(|| {
+    Mutex::new(Vec::from([
+        String::from("nvim"),
+        String::from("htop"),
+        String::from("nano"),
+    ]))
+});
+
 fn add_job(job_cmd: &String) {
     let mut job_lock = job_list.lock().unwrap();
     job_lock.push(job_cmd.clone());
@@ -122,6 +130,18 @@ pub fn execute(command: &Cmd) -> String {
             str_1
         }
         Cmd::Other(cmd, args, inp_str) => {
+            for i in TUI_EDITOR.lock().unwrap().iter() {
+                if i == cmd {
+                    let a = Command::new(cmd)
+                        .args(args)
+                        .stdout(Stdio::inherit())
+                        .stderr(Stdio::inherit())
+                        .stdin(Stdio::inherit())
+                        .spawn()
+                        .and_then(|mut child| child.wait());
+                    format!("Starting TUI {cmd}").to_string();
+                }
+            }
             if !(args.is_empty()) {
                 if args.get(args.len() - 1).unwrap() != "&" {
                     let a = Command::new(format!("{}", cmd)).args(args).output();
